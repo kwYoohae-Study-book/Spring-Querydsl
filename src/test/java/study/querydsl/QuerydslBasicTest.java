@@ -19,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.querydsl.core.QueryResults;
 import com.querydsl.core.Tuple;
+import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 
 import study.querydsl.entity.Member;
@@ -329,5 +330,87 @@ public class QuerydslBasicTest {
 
 		boolean loaded = emf.getPersistenceUnitUtil().isLoaded(findMember.getTeam());
 		assertThat(loaded).as("페치 적용").isTrue();
+	}
+
+	/**
+	 * 나이가 가장 많은 회원 조회
+	 */
+	@Test
+	void subQuery() {
+
+		QMember memberSub = new QMember("memberSub"); // 충돌나기 때문에 서브 쿼리르 입력
+
+		List<Member> result = queryFactory
+			.selectFrom(member)
+			.where(member.age.eq(
+				JPAExpressions
+					.select(memberSub.age.max())
+					.from(memberSub)
+			))
+			.fetch();
+
+		assertThat(result).extracting("age")
+			.containsExactly(40);
+	}
+
+	/**
+	 * 나이가 평균 이상 회원 조회
+	 */
+	@Test
+	void subQueryGoe() {
+
+		QMember memberSub = new QMember("memberSub"); // 충돌나기 때문에 서브 쿼리르 입력
+
+		List<Member> result = queryFactory
+			.selectFrom(member)
+			.where(member.age.goe(
+				JPAExpressions
+					.select(memberSub.age.avg())
+					.from(memberSub)
+			))
+			.fetch();
+
+		assertThat(result).extracting("age")
+			.containsExactly(30, 40);
+	}
+
+	/**
+	 * 나이가 10살 초과인 회원 조회
+	 */
+	@Test
+	void subQueryIn() {
+
+		QMember memberSub = new QMember("memberSub"); // 충돌나기 때문에 서브 쿼리르 입력
+
+		List<Member> result = queryFactory
+			.selectFrom(member)
+			.where(member.age.in(
+				JPAExpressions
+					.select(memberSub.age)
+					.from(memberSub)
+					.where(memberSub.age.gt(10))
+			))
+			.fetch();
+
+		assertThat(result).extracting("age")
+			.containsExactly(20,30,40);
+	}
+
+	@Test
+	void selectSubQuery() {
+
+		QMember memberSub = new QMember("memberSub"); // 충돌나기 때문에 서브 쿼리르 입력
+
+		List<Tuple> fetch = queryFactory
+			.select(member.username,
+				JPAExpressions
+					.select(memberSub.age.avg())
+					.from(memberSub))
+			.from(member)
+			.fetch();
+
+		for (Tuple tuple : fetch) {
+			System.out.println("tuple = " + tuple);
+		}
 	}
 }
