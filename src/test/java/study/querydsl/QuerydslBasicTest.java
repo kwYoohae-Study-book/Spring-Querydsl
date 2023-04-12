@@ -7,6 +7,8 @@ import static study.querydsl.entity.QTeam.*;
 import java.util.List;
 
 import javax.persistence.EntityManager;
+import javax.persistence.EntityManagerFactory;
+import javax.persistence.PersistenceUnit;
 
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -253,5 +255,45 @@ public class QuerydslBasicTest {
 		assertThat(result)
 			.extracting("username")
 			.containsExactly("teamA", "teamB");
+	}
+
+	/**
+	 * 회원과 팀을 조인하면서, 팀 이름이 teamA인 팀만 조인을 해라, 회원은 모두 조회해라
+	 * JPQL: Select m, t from Member m left join m.team t on t.name  = 'teamA'
+	 * inner join이면 on 쓰지말기
+	 */
+	@Test
+	void join_on_filtering() {
+		List<Tuple> result = queryFactory
+			.select(member, team)
+			.from(member)
+			.leftJoin(member.team, team).on(team.name.eq("teamA"))
+			.fetch();
+
+		for (Tuple tuple : result) {
+			System.out.println("tuple = " + tuple);
+		}
+	}
+
+	/**
+	 * 연관관계 없는 엔티티와 외부 조인할때 사용
+	 * 회원의 이름과 같은 이름과 같은 대상 외부 조인
+	 *
+	 */
+	@Test
+	void join_on_no_relation() {
+		em.persist(new Member("teamA"));
+		em.persist(new Member("teamB"));
+		em.persist(new Member("teamC"));
+
+		List<Tuple> fetch = queryFactory
+			.select(member, team)
+			.from(member)
+			.leftJoin(team).on(member.username.eq(team.name))
+			.fetch();
+
+		for (Tuple tuple : fetch) {
+			System.out.println("tuple = " + tuple);
+		}
 	}
 }
