@@ -296,4 +296,38 @@ public class QuerydslBasicTest {
 			System.out.println("tuple = " + tuple);
 		}
 	}
+
+	@PersistenceUnit
+	EntityManagerFactory emf;
+
+	@Test
+	void fetchJoinNo() {
+		em.flush();
+		em.clear();
+
+		Member findMember = queryFactory.selectFrom(member)
+			.where(member.username.eq("member1"))
+			.fetchOne();
+
+		//Lazy이기 때문에 team은 조인 안됨
+
+		boolean loaded = emf.getPersistenceUnitUtil().isLoaded(findMember.getTeam());
+		assertThat(loaded).as("페치 조인 미적용").isFalse();
+	}
+
+	@Test
+	void fetchJoinUSE() {
+		em.flush();
+		em.clear();
+
+		Member findMember = queryFactory.selectFrom(member)
+			.join(member.team, team).fetchJoin()
+			.where(member.username.eq("member1"))
+			.fetchOne();
+
+		//Lazy이기 때문에 team은 조인 안됨
+
+		boolean loaded = emf.getPersistenceUnitUtil().isLoaded(findMember.getTeam());
+		assertThat(loaded).as("페치 적용").isTrue();
+	}
 }
