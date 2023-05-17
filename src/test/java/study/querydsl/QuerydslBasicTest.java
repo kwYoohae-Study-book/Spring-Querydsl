@@ -19,11 +19,15 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.querydsl.core.QueryResults;
 import com.querydsl.core.Tuple;
+import com.querydsl.core.types.ExpressionUtils;
+import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.CaseBuilder;
 import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 
+import study.querydsl.dto.MemberDto;
+import study.querydsl.dto.UserDto;
 import study.querydsl.entity.Member;
 import study.querydsl.entity.QMember;
 import study.querydsl.entity.QTeam;
@@ -281,7 +285,6 @@ public class QuerydslBasicTest {
 	/**
 	 * 연관관계 없는 엔티티와 외부 조인할때 사용
 	 * 회원의 이름과 같은 이름과 같은 대상 외부 조인
-	 *
 	 */
 	@Test
 	void join_on_no_relation() {
@@ -395,7 +398,7 @@ public class QuerydslBasicTest {
 			.fetch();
 
 		assertThat(result).extracting("age")
-			.containsExactly(20,30,40);
+			.containsExactly(20, 30, 40);
 	}
 
 	@Test
@@ -496,6 +499,83 @@ public class QuerydslBasicTest {
 			Integer age = tuple.get(member.age);
 			System.out.println("username = " + username);
 			System.out.println("age = " + age);
+		}
+	}
+
+	@Test
+	void findDtoByJPQL() {
+		List<MemberDto> result = em.createQuery(
+				"select new study.querydsl.dto.MemberDto(m.username, m.age) from Member m", MemberDto.class)
+			.getResultList();
+
+		for (MemberDto memberDto : result) {
+			System.out.println("memberDto = " + memberDto);
+		}
+	}
+
+	// 기본 생성자가 존재해야함 DTO에
+	@Test
+	void findDtoBySetter() {
+		List<MemberDto> result = queryFactory
+			.select(Projections.bean(MemberDto.class,
+				member.username,
+				member.age))
+			.from(member)
+			.fetch();
+
+		for (MemberDto memberDto : result) {
+			System.out.println("memberDto = " + memberDto);
+		}
+	}
+
+	@Test
+	void findDtoByFiled() {
+		List<MemberDto> result = queryFactory
+			.select(Projections.fields(MemberDto.class,
+				member.username,
+				member.age))
+			.from(member)
+			.fetch();
+
+		for (MemberDto memberDto : result) {
+			System.out.println("memberDto = " + memberDto);
+		}
+	}
+
+	// 타입이 제대로 맞아야함
+	@Test
+	void findDtoByConstructor() {
+		List<UserDto> result = queryFactory
+			.select(Projections.constructor(UserDto.class,
+				member.username,
+				member.age))
+			.from(member)
+			.fetch();
+
+		for (UserDto memberDto : result) {
+			System.out.println("memberDto = " + memberDto);
+		}
+	}
+
+	// 필드 일때는, 이름명이 안맞으면 값이 안들어감
+	// name -> (X) username
+	// 실행은 되는데 null 값이 나옴
+	@Test
+	void findUserDtoByFiled() {
+		QMember memberSub = new QMember("memberSub");
+		List<UserDto> result = queryFactory
+			.select(Projections.fields(UserDto.class,
+				member.username.as("name"),
+				// member.age))
+				ExpressionUtils.as(JPAExpressions
+					.select(memberSub.age.max())
+					.from(memberSub), "age") // sub query가 들어갈 경우는, 다음과 같이 alias
+			)) // ExpressionUtils 보단 .as가 alias 정하기에 덜 복잡 -> 서브쿼리는 어쩔 수 없
+			.from(member)
+			.fetch();
+
+		for (UserDto memberDto : result) {
+			System.out.println("userDto = " + memberDto);
 		}
 	}
 }
