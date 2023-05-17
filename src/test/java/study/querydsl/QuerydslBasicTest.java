@@ -20,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.querydsl.core.QueryResults;
 import com.querydsl.core.Tuple;
 import com.querydsl.core.types.dsl.CaseBuilder;
+import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 
@@ -440,6 +441,61 @@ public class QuerydslBasicTest {
 
 		for (String s : result) {
 			System.out.println("s = " + s);
+		}
+	}
+
+	@Test
+	void constant() {
+		List<Tuple> result = queryFactory
+			.select(member.username, Expressions.constant("A"))
+			.from(member)
+			.fetch();
+
+		for (Tuple tuple : result) {
+			System.out.println("tuple = " + tuple);
+		}
+	}
+
+	// Enum은 StringValue로
+	@Test
+	void concat() {
+
+		//{username}_{age}
+		List<String> fetch = queryFactory
+			.select(member.username.concat("_").concat(member.age.stringValue()))
+			.from(member)
+			.where(member.username.eq("member1"))
+			.fetch();
+
+		for (String s : fetch) {
+			System.out.println("s = " + s);
+		}
+	}
+
+	@Test
+	void simpleProjection() {
+		List<String> result = queryFactory
+			.select(member.username)
+			.from(member)
+			.fetch();
+
+		for (String s : result) {
+			System.out.println("s = " + s);
+		}
+	}
+
+	@Test
+	void tupleProjection() {
+		List<Tuple> result = queryFactory
+			.select(member.username, member.age)
+			.from(member)
+			.fetch();
+
+		for (Tuple tuple : result) {
+			String username = tuple.get(member.username);
+			Integer age = tuple.get(member.age);
+			System.out.println("username = " + username);
+			System.out.println("age = " + age);
 		}
 	}
 }
