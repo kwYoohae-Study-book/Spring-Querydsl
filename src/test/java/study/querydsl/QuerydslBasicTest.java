@@ -27,6 +27,7 @@ import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 
 import study.querydsl.dto.MemberDto;
+import study.querydsl.dto.QMemberDto;
 import study.querydsl.dto.UserDto;
 import study.querydsl.entity.Member;
 import study.querydsl.entity.QMember;
@@ -576,6 +577,20 @@ public class QuerydslBasicTest {
 
 		for (UserDto memberDto : result) {
 			System.out.println("userDto = " + memberDto);
+		}
+	}
+
+	// 기존 constructor는 컴파일 시점에, 오류를 잡지 못함
+	// 단점: Q 파일이 생성됨, 아키텍쳐적으로, DTO가 QueryDSL에 의존하게됨
+	@Test
+	void findDtoByQueryProjection() {
+		List<MemberDto> result = queryFactory
+			.select(new QMemberDto(member.username, member.age))
+			.from(member)
+			.fetch();
+
+		for (MemberDto memberDto : result) {
+			System.out.println("memberDto = " + memberDto);
 		}
 	}
 }
