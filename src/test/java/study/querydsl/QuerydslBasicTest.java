@@ -30,6 +30,7 @@ import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 
+import lombok.experimental.StandardException;
 import study.querydsl.dto.MemberDto;
 import study.querydsl.dto.QMemberDto;
 import study.querydsl.dto.UserDto;
@@ -700,5 +701,34 @@ public class QuerydslBasicTest {
 			.delete(member)
 			.where(member.age.gt(18))
 			.execute();
+	}
+
+	@Test
+	void sqlFunction() {
+		List<String> result = queryFactory
+			.select(
+				Expressions.stringTemplate("function('replace', {0}, {1}, {2})", // diarect에 있어야함
+					member.username, "member", "M")
+			).from(member)
+			.fetch();
+
+		for (String s : result) {
+			System.out.println("s = " + s);
+		}
+	}
+
+	@Test
+	void sqlFunction2() {
+		List<String> result = queryFactory
+			.select(member.username)
+			.from(member)
+			.where(member.username.eq(member.username.lower())) // 같은기능을함
+			// .where(member.username.eq(Expressions.stringTemplate("function('lower', {0})",
+			// 	member.username)))
+			.fetch();
+
+		for (String s : result) {
+			System.out.println("s = " + s);
+		}
 	}
 }
