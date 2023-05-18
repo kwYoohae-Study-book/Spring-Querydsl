@@ -15,6 +15,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.annotation.Commit;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.querydsl.core.BooleanBuilder;
@@ -655,5 +656,49 @@ public class QuerydslBasicTest {
 	// 한방 조립도 가능, 조립할라면 BooleanExpression 사용할것
 	private Predicate allEq(String usernameCond, Integer ageCond) {
 		return usernameEq(usernameCond).and(ageEq(ageCond));
+	}
+
+	@Test
+	// @Commit
+	void bulkUpdate() {
+
+		// member1 = 10 -> 비회원 -> 영속성 컨텍스트에는 그대로 member1
+		// member2 = 20 -> 비회원 -> 영속성 컨텍스트에는 그대로 member2
+		// -> 결론, DB의 상태와 영속성 컨텍스트의 값과 서로 다름
+		long count = queryFactory
+			.update(member)
+			.set(member.username, "비회원")
+			.where(member.age.lt(28))
+			.execute();
+
+		em.flush();
+		em.clear();
+
+		// 맴버가져올경우
+		List<Member> result = queryFactory
+			.selectFrom(member)
+			.fetch();
+
+		// 영속성 컨텐스트의 값을 가지고 있음 -> Repeatable read
+		for (Member member1 : result) {
+			System.out.println("member1 = " + member1);
+		}
+	}
+
+	@Test
+	void bulkAdd() {
+		long count = queryFactory
+			.update(member)
+			// .set(member.age, member.age.add(1))
+			.set(member.age, member.age.multiply(2))
+			.execute();
+	}
+
+	@Test
+	void bulkDelete() {
+		long count = queryFactory
+			.delete(member)
+			.where(member.age.gt(18))
+			.execute();
 	}
 }
