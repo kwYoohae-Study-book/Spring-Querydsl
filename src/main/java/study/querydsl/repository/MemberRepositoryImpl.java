@@ -11,9 +11,11 @@ import javax.persistence.EntityManager;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.support.PageableExecutionUtils;
 
 import com.querydsl.core.QueryResults;
 import com.querydsl.core.types.dsl.BooleanExpression;
+import com.querydsl.jpa.impl.JPAQuery;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 
 import study.querydsl.dto.MemberSearchCondition;
@@ -95,7 +97,7 @@ public class MemberRepositoryImpl implements MemberRepositoryCustom{
 			.fetch();
 
 		// join이 필요없이 simple하게 count를 할 수 있는 경우가 존재 , 이렇게 하면 좀더 최적화가능
-		long total = queryFactory
+		JPAQuery<MemberTeamDto> countQuery = queryFactory
 			.select(new QMemberTeamDto(
 				member.id.as("memberId"), member.username
 				, member.age, team.id.as("teamId"),
@@ -108,9 +110,10 @@ public class MemberRepositoryImpl implements MemberRepositoryCustom{
 				teamNameEq(condition.getTeamName()),
 				ageGoe(condition.getAgeGoe()),
 				ageLoe(condition.getAgeLoe())
-			).fetch().size();
+			);
 
-		return new PageImpl<>(content, pageable, total);
+		// 이렇게하면, getPage에서 totalSize를 보고, 시작이거나 크면 함수 자체를 실행하지 않음
+		return PageableExecutionUtils.getPage(content, pageable, countQuery::fetchCount);
 	}
 
 	private BooleanExpression usernameEq(String username) {
